@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Prism Markets — trade on real-world outcomes with play money.">
+  <title>Prism Markets</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Favicon (inline SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>◈</text></svg>">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Initial loader — hidden by JS after auth check -->
+    <div id="loader">
+      <div class="loader-glyph">◈</div>
+    </div>
+
+    <!-- Navbar — populated by renderNavbar() -->
+    <nav id="navbar" class="hidden"></nav>
+
+    <!-- Main content — swapped by route() -->
+    <main id="main"></main>
+
+    <!-- Toast notifications -->
+    <div id="toasts"></div>
+
+  </div>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- App config (fill in your Supabase URL + anon key) -->
+  <script src="js/config.js"></script>
+
+  <!-- App logic -->
+  <script src="js/app.js"></script>
+</body>
+</html>
