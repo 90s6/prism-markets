@@ -204,11 +204,15 @@ function renderNavbar() {
         <a href="#/"          class="nav-link${hash === '#/' || hash === '' ? ' active' : ''}">Markets</a>
         <a href="#/create"    class="nav-link${hash === '#/create' ? ' active' : ''}">Create</a>
         <a href="#/portfolio" class="nav-link${hash === '#/portfolio' ? ' active' : ''}">Portfolio</a>
+        ${app.profile?.is_admin ? `<a href="#/admin" class="nav-link${hash === '#/admin' ? ' active' : ''}">Admin</a>` : ''}
       </div>
       <div class="nav-right">
         <span class="nav-balance" id="nav-balance">${app.profile ? fmt$(app.profile.balance) : ''}</span>
         <button class="nav-avatar" id="nav-avatar-btn" title="Account">
           ${(app.profile?.username || app.user.email || '??').slice(0,2).toUpperCase()}
+        </button>
+        <button class="nav-hamburger" id="nav-hamburger-btn">
+          <span></span><span></span><span></span>
         </button>
         <div class="nav-dropdown hidden" id="nav-dropdown">
           <div class="dropdown-user">${app.profile?.username || app.user.email}</div>
@@ -216,13 +220,51 @@ function renderNavbar() {
           <button class="dropdown-item" id="signout-btn">Sign Out</button>
         </div>
       </div>
+    </div>
+    <div class="nav-mobile-menu" id="nav-mobile-menu">
+      <a href="#/"          class="nav-mobile-link${hash === '#/' || hash === '' ? ' active' : ''}">Markets</a>
+      <a href="#/create"    class="nav-mobile-link${hash === '#/create' ? ' active' : ''}">Create</a>
+      <a href="#/portfolio" class="nav-mobile-link${hash === '#/portfolio' ? ' active' : ''}">Portfolio</a>
+      ${app.profile?.is_admin ? `<a href="#/admin" class="nav-mobile-link${hash === '#/admin' ? ' active' : ''}">Admin</a>` : ''}
+      <a href="#/profile" class="nav-mobile-link">Profile</a>
+      <button class="nav-mobile-link" id="mobile-signout">Sign Out</button>
     </div>`;
 
+  // Avatar dropdown
   document.getElementById('nav-avatar-btn').addEventListener('click', e => {
     e.stopPropagation();
     document.getElementById('nav-dropdown').classList.toggle('hidden');
+    document.getElementById('nav-mobile-menu').classList.remove('active');
   });
+
+  // Hamburger menu
+  const hamBtn = document.getElementById('nav-hamburger-btn');
+  const mobileMen = document.getElementById('nav-mobile-menu');
+  hamBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    hamBtn.classList.toggle('active');
+    mobileMen.classList.toggle('active');
+    document.getElementById('nav-dropdown').classList.add('hidden');
+  });
+
+  // Close menus on route
+  document.querySelectorAll('.nav-mobile-link').forEach(link => {
+    link.addEventListener('click', () => {
+      hamBtn.classList.remove('active');
+      mobileMen.classList.remove('active');
+    });
+  });
+
+  // Global click to close menus
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.nav-right') && !e.target.closest('.nav-mobile-menu')) {
+      document.getElementById('nav-dropdown').classList.add('hidden');
+      if (hamBtn) { hamBtn.classList.remove('active'); mobileMen.classList.remove('active'); }
+    }
+  });
+
   document.getElementById('signout-btn').addEventListener('click', signOut);
+  document.getElementById('mobile-signout').addEventListener('click', signOut);
 }
 
 // ============================================================
@@ -1083,6 +1125,145 @@ function renderProfile() {
 }
 
 // ============================================================
+// VIEW: ADMIN
+// ============================================================
+async function renderAdmin() {
+  if (!app.user || !app.profile?.is_admin) {
+    setMain(`<div class="empty-state" style="padding:80px 0">
+      <h2>Access Denied</h2>
+      <p style="margin-top:8px">You don't have admin privileges.</p>
+    </div>`);
+    return;
+  }
+
+  setMain('<div class="loading-markets"><div class="spinner"></div></div>');
+
+  const { data: stats, error } = await sb.rpc('get_admin_stats', { p_user_id: app.user.id });
+  if (error || stats?.error) { toast(error?.message || stats.error, 'error'); return; }
+
+  const { total_users, total_balance, total_markets, resolved_markets, total_volume, users, markets } = stats;
+
+  setMain(`
+    <div class="page-admin">
+      <h1 class="page-heading">Admin Dashboard</h1>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value">${total_users}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Platform Balance</div>
+          <div class="stat-value highlight">${fmt$(total_balance)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Markets</div>
+          <div class="stat-value">${total_markets}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Volume</div>
+          <div class="stat-value">${fmt$(total_volume)}</div>
+        </div>
+      </div>
+
+      <h2 class="section-heading" style="margin-top:32px">Users (Last 100)</h2>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead><tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th class="ta-right">Balance</th>
+            <th class="ta-right">Positions</th>
+            <th class="ta-right">Open Orders</th>
+            <th class="ta-right">Joined</th>
+          </tr></thead>
+          <tbody>
+            ${(users || []).map(u => `<tr>
+              <td><strong>${escapeHtml(u.username)}</strong></td>
+              <td style="font-size:12px;color:var(--text-dim)">${escapeHtml(u.email)}</td>
+              <td class="ta-right mono">${fmt$(u.balance)}</td>
+              <td class="ta-right">${u.open_positions}</td>
+              <td class="ta-right">${u.open_orders}</td>
+              <td class="ta-right" style="font-size:12px;color:var(--text-dim)">${fmtDate(u.created_at)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="section-heading" style="margin-top:32px">Markets (Last 50)</h2>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead><tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th class="ta-right">Price</th>
+            <th class="ta-right">Volume</th>
+            <th class="ta-right">Traders</th>
+            <th class="ta-right">Status</th>
+            <th class="ta-right">Action</th>
+          </tr></thead>
+          <tbody>
+            ${(markets || []).map(m => {
+              const closed = !m.resolved_at && new Date(m.closes_at) < new Date();
+              return `<tr>
+              <td><a href="#/market/${m.id}" class="table-link">${escapeHtml(m.title)}</a></td>
+              <td style="font-size:12px"><span class="badge badge-cat">${escapeHtml(m.category)}</span></td>
+              <td class="ta-right mono">${(m.yes_price * 100).toFixed(0)}¢</td>
+              <td class="ta-right mono">${fmt$(m.volume)}</td>
+              <td class="ta-right">${m.traders}</td>
+              <td class="ta-right">
+                ${m.resolved_at
+                  ? `<span class="badge badge-${m.resolution}">${m.resolution}</span>`
+                  : (closed
+                      ? '<span class="badge badge-closed">CLOSED</span>'
+                      : '<span class="badge badge-open">OPEN</span>')}
+              </td>
+              <td class="ta-right">
+                ${closed ? `<button class="btn btn-sm btn-secondary reopen-btn" data-mid="${m.id}">Reopen</button>` : ''}
+              </td>
+            </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`);
+
+  // Attach reopen handlers
+  document.querySelectorAll('.reopen-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const marketId = btn.dataset.mid;
+      const minDate = new Date(Date.now() + 60*1000).toISOString().slice(0,16);
+      const newTime = await showModal({
+        title: 'Reopen Market',
+        body: `
+          <p>Set a new closing time (must be in the future):</p>
+          <div class="form-group" style="margin-top:0">
+            <input id="reopen-datetime" name="reopen-datetime" type="datetime-local"
+              class="form-input" min="${minDate}">
+          </div>`,
+        confirmLabel: 'Reopen Market',
+        confirmClass: 'btn-primary'
+      });
+      if (!newTime) return;
+
+      btn.disabled = true; btn.textContent = 'Reopening…';
+      const closesAt = new Date(newTime).toISOString();
+      const { data, error } = await sb.rpc('reopen_market', {
+        p_admin_id: app.user.id, p_market_id: marketId, p_new_closes_at: closesAt
+      });
+
+      if (error || data?.error) {
+        toast(data?.error || error.message, 'error');
+        btn.disabled = false; btn.textContent = 'Reopen';
+        return;
+      }
+      toast(`Market reopened until ${fmtDatetime(data.new_closes_at)}`, 'success');
+      await renderAdmin();
+    });
+  });
+}
+
+// ============================================================
 // ROUTER
 // ============================================================
 function route() {
@@ -1096,9 +1277,13 @@ function route() {
   else if (hash === '#/create')                renderCreate();
   else if (hash === '#/portfolio')             renderPortfolio();
   else if (hash === '#/profile')               renderProfile();
+  else if (hash === '#/admin')                 renderAdmin();
   else                                         renderHome();
 
-  // Close any open nav dropdown
+  // Close any open nav dropdown/mobile menu
+  const hamBtn = document.getElementById('nav-hamburger-btn');
+  if (hamBtn) { hamBtn.classList.remove('active'); }
+  document.getElementById('nav-mobile-menu')?.classList.remove('active');
   document.getElementById('nav-dropdown')?.classList.add('hidden');
 }
 

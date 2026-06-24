@@ -132,6 +132,43 @@ a:hover { color: var(--text); }
 }
 .dropdown-item:hover { background: var(--border); color: #fff; }
 
+/* Hamburger menu (mobile only) */
+.nav-hamburger {
+  display: none;
+  flex-direction: column; gap: 4px;
+  background: none; border: none; cursor: pointer;
+  padding: 0; width: 24px; height: 20px;
+}
+.nav-hamburger span {
+  display: block; width: 100%; height: 2px;
+  background: var(--text-dim); border-radius: 1px;
+  transition: all 0.3s ease;
+}
+.nav-hamburger.active span:nth-child(1) { transform: rotate(45deg) translateY(8px); }
+.nav-hamburger.active span:nth-child(2) { opacity: 0; }
+.nav-hamburger.active span:nth-child(3) { transform: rotate(-45deg) translateY(-8px); }
+
+/* Mobile nav overlay */
+.nav-mobile-menu {
+  display: none;
+  position: fixed; top: var(--nav-h); left: 0; right: 0;
+  background: rgba(13,33,55,0.98); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  z-index: 99; padding: 16px 20px;
+  flex-direction: column; gap: 2px;
+}
+.nav-mobile-menu.active { display: flex; }
+.nav-mobile-link {
+  padding: 10px 12px; border-radius: var(--r);
+  color: var(--text-dim); font-size: 14px; font-weight: 500;
+  transition: all 0.15s;
+  background: none; border: none; cursor: pointer; font-family: var(--sans);
+  text-align: left; width: 100%;
+}
+.nav-mobile-link:hover, .nav-mobile-link.active {
+  color: var(--text); background: var(--surface-2);
+}
+
 /* ============================================================
    LAYOUT
    ============================================================ */
@@ -567,6 +604,8 @@ textarea.form-input { resize: vertical; min-height: 72px; }
 @media (max-width: 600px) {
   :root { --nav-h: 52px; }
   .nav-links { display: none; }
+  .nav-hamburger { display: flex; }
+  .nav-balance { display: none; }
   .markets-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .form-row { grid-template-columns: 1fr; }
